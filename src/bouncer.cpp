@@ -3,16 +3,16 @@
 #define serial_baud 115200 // Serial Baud rate.
 #define testPin 2  // Pin where the switch under test is connected
 #define ledPin 13  // Pin where a led goes to show if it's active or not.
-#define samples_count 100 // Number of samples to track.
-#define settle_time 500000 // Microseconds to wait before the end of a bounce
+#define samples_count 200 // Number of samples to track.
+#define settle_time 200000 // Microseconds to wait before the end of a bounce
 
 uint8_t start_state;
-unsigned long events[samples_count];
+volatile unsigned long events[samples_count];
 volatile int event_nr;
 
 void send_bounce_data() {
     uint8_t state = start_state;
-    long start_moment = events[0];
+    unsigned long start_moment = events[0];
     Serial.print("START:");
     Serial.print(state);
     Serial.print(":");
@@ -26,7 +26,7 @@ void send_bounce_data() {
         state = !state;
     }
     Serial.print("END:");
-    Serial.println(state);
+    Serial.println(digitalRead(testPin));
 }
 
 void cleanup() {
@@ -46,26 +46,15 @@ void setup() {
     pinMode(testPin, INPUT);
     cleanup();
     start_state = digitalRead(testPin);
+    attachInterrupt(digitalPinToInterrupt(testPin), bounce, CHANGE);
+    Serial.println("READY");
 }
 
 void loop() {
-    if(event_nr == 0) {
-        // The waiting for triggering state
-        if(start_state != digitalRead(testPin)) {
-            // The value changed!
-            bounce();
-            digitalWrite(ledPin, HIGH);
-            attachInterrupt(digitalPinToInterrupt(testPin), bounce, CHANGE);
-        }
-    } else {
-        // Actively Sampling bounces.
-        if(events[event_nr] + settle_time < micros()) {
-            // Not seen new events for settle_time. we're done.
-            detachInterrupt(digitalPinToInterrupt(testPin));
-            send_bounce_data();
-            cleanup();
-            digitalWrite(ledPin, LOW);
-            start_state = digitalRead(testPin);
-        }
+    if(event_nr != 0 && (events[event_nr] + settle_time) < micros()) {
+        // Not seen new events for settle_time. we're done.
+        send_bounce_data();
+        cleanup();
+        start_state = digitalRead(testPin);
     }
 }
