@@ -18,12 +18,18 @@ class Switch():
         self.start_state = to_bool(start_state)
         self.start_moment = int(start_moment)
         self.end_state = None
-        print('Switch at %s' % self.start_moment)
 
     def add_transition(self, nr, state, moment):
         assert int(nr) == len(self.transitions)
         self.transitions.append([state, int(moment)])
 
+    @property
+    def transition_count(self):
+        return len(self.transitions)
+
+    @property
+    def switch_duration(self):
+        return self.transitions[-1][1]
 
 def start_decoder(line, switches):
     parts = line.split(b":")
@@ -60,6 +66,20 @@ def line_reader(fd):
         yield line.strip()
 
 
+def create_stats(switches):
+    switch_count = len(switches)
+    print("Total recorded switches: %d" % switch_count)
+    most_transitions = max([s.transition_count for s in switches])
+    least_transitions= min([s.transition_count for s in switches])
+    avg_transitions  = sum([s.transition_count for s in switches]) / switch_count
+    print("Most/Least/avg transitions for a switch", most_transitions, least_transitions, avg_transitions)
+
+    slowest_switch  = max([s.switch_duration for s in switches])
+    quickest_switch = min([s.switch_duration for s in switches])
+    avg_switch = sum([s.switch_duration for s in switches]) / switch_count
+    print("Slowest/Quickest/avg switch", slowest_switch, quickest_switch, avg_switch)
+
+
 def main(argv):
     parser = argparse.ArgumentParser(description="Bounce data to statistics converter")
     parser.add_argument('datafiles', metavar="FILE", nargs=1, help="The bounce datafile")
@@ -68,6 +88,6 @@ def main(argv):
     for datafile in config.datafiles:
         with open(datafile, 'rb') as fd:
             switches = parse_file(fd, config)
-
+            create_stats(switches)
 if __name__ == '__main__':
     main(sys.argv)
