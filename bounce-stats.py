@@ -12,7 +12,7 @@ def to_bool(value):
     raise NotImplementedError("Unknown boolean value %s" % repr(value))
 
 
-class Switch():
+class Switch(object):
     def __init__(self, start_state, start_moment):
         self.transitions = []
         self.start_state = to_bool(start_state)
@@ -22,6 +22,19 @@ class Switch():
     def add_transition(self, nr, state, moment):
         assert int(nr) == len(self.transitions)
         self.transitions.append([state, int(moment)])
+
+    @property
+    def direction(self):
+        assert self.start_state is not None and self.end_state is not None
+        if self.start_state == True:
+            d = "H"
+        else:
+            d = "L"
+        if self.end_state == True:
+            d += "H"
+        else:
+            d += "L"
+        return d
 
     @property
     def transition_count(self):
@@ -106,6 +119,12 @@ def create_stats(switches):
     avg_switch = sum([s.duration for s in switches]) / switch_count
     print("Slowest/Quickest/avg switch", slowest_switch, quickest_switch, avg_switch)
 
+    directions = {}
+    for s in switches:
+        dir = s.direction
+        directions.setdefault(dir, 0)
+        directions[dir] += 1
+    print(directions)
 
 def main(argv):
     parser = argparse.ArgumentParser(description="Bounce data to statistics converter")
@@ -118,5 +137,6 @@ def main(argv):
             switches = parse_file(fd, config)
             switches = combine_switches(switches, config)
             create_stats(switches)
+
 if __name__ == '__main__':
     main(sys.argv)
