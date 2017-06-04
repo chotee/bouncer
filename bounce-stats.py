@@ -11,12 +11,20 @@ def to_bool(value):
         return False
     raise NotImplementedError("Unknown boolean value %s" % repr(value))
 
+
 def micro_to_mili(micro):
     return float(micro) / 1000
+
 
 class SamplesSet(list):
     def direction(self, dir):
         return [s for s in self if s.direction == dir]
+
+    def transition_counts(self, dir):
+        return [s.transition_count for s in self.direction(dir)]
+
+    def durations(self, dir):
+        return [s.duration for s in self.direction(dir)]
 
 
 class Switch(object):
@@ -127,7 +135,6 @@ def sample_information(switches):
 
 
 def create_stats(switches):
-    # sample_information(switches)
     direction_stats(switches, "LH")
     print("-"*5)
     direction_stats(switches, "HL")
@@ -136,16 +143,24 @@ def create_stats(switches):
 def direction_stats(switches, dir):
     switch_count = len(switches.direction(dir))
     print("Total recorded %s switches: %d" % (dir, switch_count))
-    most_transitions = max([s.transition_count for s in switches if s.direction == dir])
-    least_transitions = min([s.transition_count for s in switches if s.direction == dir])
-    avg_transitions = sum([s.transition_count for s in switches if s.direction == dir]) / switch_count
+    most_transitions = max(switches.transition_counts(dir))
+    least_transitions = min(switches.transition_counts(dir))
+    avg_transitions = sum(switches.transition_counts(dir)) / switch_count
     print("%s transitions Most/Least/avg %g/%g/%g" % (dir, most_transitions, least_transitions, avg_transitions))
-    slowest_switch = max([s.duration for s in switches if s.direction == dir])
-    quickest_switch = min([s.duration for s in switches if s.direction == dir])
-    avg_switch = sum([s.duration for s in switches if s.direction == dir]) / switch_count
-    print("%s switching Slowest/Quickest/avg %g/%g/%g" % (dir, micro_to_mili(slowest_switch), micro_to_mili(quickest_switch),
+    slowest_switch  = max(switches.durations(dir))
+    quickest_switch = min(switches.durations(dir))
+    avg_switch      = sum(switches.durations(dir)) / switch_count
+    print("%s switching Slowest/Quickest/avg %g/%g/%gms" % (dir, micro_to_mili(slowest_switch), micro_to_mili(quickest_switch),
           micro_to_mili(avg_switch)))
-
+    duration_list = sorted(switches.durations(dir))
+    pos90 = int(len(switches.direction(dir)) * 0.9)
+    pos95 = int(len(switches.direction(dir)) * 0.95)
+    pos99 = int(len(switches.direction(dir)) * 0.99)
+    print("To debounce in 90%%/95%%/99%% of the cases, it should last %g/%g/%gms" % (
+        micro_to_mili(duration_list[pos90]),
+        micro_to_mili(duration_list[pos95]),
+        micro_to_mili(duration_list[pos99]),
+    ))
 
 def main(argv):
     parser = argparse.ArgumentParser(description="Bounce data to statistics converter")
