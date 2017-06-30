@@ -51,8 +51,21 @@ void setup() {
 }
 
 void loop() {
-    if(event_nr != 0 && (events[event_nr] + settle_time) < micros()) {
+    unsigned long now = micros();
+    if(event_nr != 0 && (events[event_nr-1] + settle_time) < now) {
         // Not seen new events for settle_time. we're done.
+        // Serial.print("event_nr: ");
+        // Serial.print(event_nr);
+        // Serial.print(" events[event_nr-1]: ");
+        // Serial.print(events[event_nr-1]);
+        // Serial.print(" settle_time: ");
+        // Serial.print(settle_time);
+        // Serial.print(" now:");
+        // Serial.print(now);
+        // Serial.print(" start_moment: ");
+        // Serial.print(start_moment);
+        // Serial.print(" diff: ");
+        // Serial.println(now - events[event_nr-1]);
         send_bounce_data();
         cleanup();
         start_state = digitalRead(testPin);
